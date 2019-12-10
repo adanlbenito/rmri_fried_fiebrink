@@ -20,16 +20,18 @@ from keras.layers import Input, Dense, Dense, Conv2D, Dropout, \
 from keras.models import Model, Sequential, load_model
 from keras.utils.np_utils import to_categorical
 from keras.optimizers import Adadelta
+from keras import regularizers
 from keras import backend as K
 
 class DeepAutoEncoder(object):
   """Stacked Autoencoder Topology (generic)"""
 
-  def __init__(self, n_layers, units, input_dim, activation='relu'):
+  def __init__(self, n_layers, units, input_dim, activation='relu', sparsity=0):
     self.n_layers = n_layers if (n_layers > 1) else 1
     self.set_units(units)
     self.activation = activation
     self.input_dim = input_dim
+    self.sparsity = sparsity
     try:
       # Convolutional case
       iter(self.input_dim)
@@ -51,11 +53,17 @@ class DeepAutoEncoder(object):
       
   def encoder(self, input):
     self.encoder_layers = []
-    encoded = Dense(self.units[0], activation=self.activation)(input)
+    if self.sparsity != 0:
+        encoded = Dense(self.units[0], activation=self.activation, kernel_regularizer=regularizers.l2(self.sparsity))(input)
+    else:
+        encoded = Dense(self.units[0], activation=self.activation)(input)
     self.encoder_layers.append(encoded)
     if self.n_layers > 1:
       for e in range(1, self.n_layers):
-        encoded =  Dense(self.units[e], activation=self.activation)(encoded)
+        if self.sparsity != 0:
+            encoded = Dense(self.units[e], activation=self.activation, kernel_regularizer=regularizers.l2(self.sparsity))(encoded)
+        else:
+            encoded =  Dense(self.units[e], activation=self.activation)(encoded)
         self.encoder_layers.append(encoded)
     self.encoded = encoded
     return encoded
@@ -66,9 +74,15 @@ class DeepAutoEncoder(object):
     self.decoder_layers.append(decoded)
     if self.n_layers > 1:
       for e in range(self.n_layers-1, 0, -1):
-        decoded = Dense(self.units[e], activation=self.activation)(decoded)
+        if self.sparsity != 0:
+            decoded = Dense(self.units[e], activation=self.activation, kernel_regularizer=regularizers.l2(self.sparsity))(decoded)
+        else:
+            decoded = Dense(self.units[e], activation=self.activation)(decoded)
         self.decoder_layers.append(decoded)
-    decoded = Dense(self.input_dim, activation='sigmoid')(decoded)
+    if self.sparsity != 0:
+        decoded = Dense(self.input_dim, activation='sigmoid', kernel_regularizer=regularizers.l2(self.sparsity))(decoded)
+    else:
+        decoded = Dense(self.input_dim, activation='sigmoid')(decoded)
     return decoded
 
   def compile(self, *args, **kwargs):
@@ -113,16 +127,18 @@ class DeepAutoencoderTrain(object):
 
   def train_autoencoder(self, num_units, x_train, y_train, x_test, y_test,
                         n_epochs=50, learning_rate=1., batch_size=32,
-                        optimizer='adam', loss_function='binary_crossentropy', activation='relu'):
+                        optimizer='adam', loss_function='binary_crossentropy', activation='relu', sparsity=0):
     """Creates and trains deep autoencoder"""
     # Declare Deep AutoEncoder
     self.num_layers = len(num_units)
     self.activation = activation
+    self.sparsity = sparsity
     input_dim = x_train.shape[1]
-    self.deep_autoencoder = DeepAutoEncoder(n_layers=self.num_layers, 
-                                            units=num_units, 
+    self.deep_autoencoder = DeepAutoEncoder(n_layers=self.num_layers,
+                                            units=num_units,
                                             input_dim=input_dim,
-                                            activation=self.activation)
+                                            activation=self.activation,
+                                            sparsity=self.sparsity)
     # Compile Model
     self.deep_autoencoder.compile(optimizer=optimizer,
                              loss=loss_function,
