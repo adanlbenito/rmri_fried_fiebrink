@@ -113,14 +113,16 @@ class DeepAutoencoderTrain(object):
 
   def train_autoencoder(self, num_units, x_train, y_train, x_test, y_test,
                         n_epochs=50, learning_rate=1., batch_size=32,
-                        optimizer='adam', loss_function='binary_crossentropy'):
+                        optimizer='adam', loss_function='binary_crossentropy', activation='relu'):
     """Creates and trains deep autoencoder"""
     # Declare Deep AutoEncoder
     self.num_layers = len(num_units)
+    self.activation = activation
     input_dim = x_train.shape[1]
     self.deep_autoencoder = DeepAutoEncoder(n_layers=self.num_layers, 
                                             units=num_units, 
-                                            input_dim=input_dim)
+                                            input_dim=input_dim,
+                                            activation=self.activation)
     # Compile Model
     self.deep_autoencoder.compile(optimizer=optimizer,
                              loss=loss_function,
