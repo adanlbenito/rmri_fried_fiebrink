@@ -73,11 +73,12 @@ class DeepAutoEncoder(object):
     decoded = encoded
     self.decoder_layers.append(decoded)
     if self.n_layers > 1:
-      for e in range(self.n_layers-1, 0, -1):
+      inv_units = self.units[::-1]
+      for e in range(1, self.n_layers):
         if self.sparsity != 0:
-            decoded = Dense(self.units[e], activation=self.activation, activity_regularizer=regularizers.l2(self.sparsity))(decoded)
+            decoded = Dense(inv_units[e], activation=self.activation, activity_regularizer=regularizers.l2(self.sparsity))(decoded)
         else:
-            decoded = Dense(self.units[e], activation=self.activation)(decoded)
+            decoded = Dense(inv_units[e], activation=self.activation)(decoded)
         self.decoder_layers.append(decoded)
     if self.sparsity != 0:
         decoded = Dense(self.input_dim, activation='sigmoid', activity_regularizer=regularizers.l2(self.sparsity))(decoded)
