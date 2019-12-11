@@ -142,8 +142,7 @@ class DeepAutoencoderTrain(object):
                                             sparsity=self.sparsity)
     # Compile Model
     self.deep_autoencoder.compile(optimizer=optimizer,
-                             loss=loss_function,
-                             metrics=['accuracy'])
+                             loss=loss_function)
     # Train and save history
     self.model_history = self.deep_autoencoder.fit(x_train,
         x_train,
